@@ -1,0 +1,20 @@
+{
+  "name": "excel-generator",
+  "version": "1.0.0",
+  "description": "a tool to generate EXCEL",
+  "main": "index.js",
+  "author": "s0urce",
+  "license": "MIT",
+  "dependencies": {
+    "exceljs": "^4.1.0",
+    "moment": "^2.27.0",
+    "pdfjs-dist": "^2.4.456",
+    "request": "^2.88.2",
+    "rmb-x": "^0.1.2"
+  },
+  "scripts": {
+    "start": "node --inspect-brk app.js",
+    "build": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
