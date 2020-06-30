@@ -2,7 +2,7 @@
 a tool to generate EXCEL
 
 ## Usage
-edit config in `app.js`:
+Edit `app.js`
 ```javascript
 const CONFIG = {
     name: '小明', // replace your real name
@@ -11,8 +11,9 @@ const CONFIG = {
     tplPath: ['./assets/c.xlsx', './assets/d.xlsx'], // default template EXCEL
     outputPath: ['./dist/报销申请单.xlsx', './dist/市内交通费用报销明细.xlsx'], // output path setting
 }
+...
 ```
-build EXCEL:
+Build EXCEL
 ```javascript
 npm i
 npm run build
