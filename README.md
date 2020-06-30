@@ -1,5 +1,5 @@
 # excel-generator
-a tool to generate EXCEL
+🖨️ a tool to generate EXCEL
 
 ## Usage
 Edit `app.js`
