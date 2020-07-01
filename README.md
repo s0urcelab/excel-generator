@@ -2,7 +2,9 @@
 🖨️ a tool to generate EXCEL
 
 ## Usage
-Edit `app.js`
+recommended nodejs version 11+
+
+edit `app.js`
 ```javascript
 const CONFIG = {
     name: '小明', // replace your real name
@@ -13,7 +15,7 @@ const CONFIG = {
 }
 ...
 ```
-Build EXCEL
+build EXCEL
 ```javascript
 npm i
 npm run build
