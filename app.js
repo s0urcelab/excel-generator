@@ -117,7 +117,7 @@ const workbook = new Excel.Workbook();
 
         // 市内交通费用报销明细
         const response = await axios(REQ_OPTS)
-        const { data: { records } = {}} = response
+        const { data: { data: { records } } } = response
         const dList = tableList.map(item => {
             const {endCheckTime} = records
                 .find(v => moment.unix(v.attendDate).format(DATE_FORMAT) === item.date)
