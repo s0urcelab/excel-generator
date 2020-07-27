@@ -12,7 +12,7 @@ const CONFIG = {
     outputPath: ['./dist/报销申请单.xlsx', './dist/市内交通费用报销明细.xlsx'],
 }
 
-const moment = require('moment')
+const moment = require('dayjs')
 const pdfjs = require('pdfjs-dist/es5/build/pdf')
 const Excel = require('exceljs')
 const rmb = require('rmb-x')
@@ -63,25 +63,33 @@ const workbook = new Excel.Workbook();
     try {
         const loadingPdf = pdfjs.getDocument(CONFIG.pdfPath)
         const doc = await loadingPdf.promise
+
         const firstPage = await doc.getPage(1)
         const { items } = await firstPage.getTextContent()
         const [_, statNum, statMoney] = items
             .find(v => !!~v.str.indexOf('笔行程， 合计')).str
             .match(STAT_REG)
-        const tableData = items.filter(v => String(v.transform.slice(0, 4)) === '7,0,0,7')
-        const groupCount = Math.ceil(tableData.length / 10)
-        const tableList = Array.from({length: groupCount}).map((item, idx) => {
-            const [date, time, week] = tableData[idx * 10 + 2].str.split(' ')
-            return {
-                type: tableData[idx * 10 + 1].str,
-                date: moment(`${THIS_YEAR}-${date}`).format(DATE_FORMAT),
-                time,
-                startLocation: tableData[idx * 10 + 4].str,
-                endLocation: tableData[idx * 10 + 5].str,
-                distance: +tableData[idx * 10 + 6].str,
-                money: +tableData[idx * 10 + 7].str,
-            }
-        })
+
+        let tableList = []
+        for (let i = 1; i <= doc.numPages ; i++) {
+            const nowPage = await doc.getPage(i)
+            const { items } = await nowPage.getTextContent()
+            const tableData = items.filter(v => String(v.transform.slice(0, 4)) === '7,0,0,7')
+            const groupCount = Math.ceil(tableData.length / 10)
+            const pageList = Array.from({length: groupCount}).map((item, idx) => {
+                const [date, time, week] = tableData[idx * 10 + 2].str.split(' ')
+                return {
+                    type: tableData[idx * 10 + 1].str,
+                    date: moment(`${THIS_YEAR}-${date}`).format(DATE_FORMAT),
+                    time,
+                    startLocation: tableData[idx * 10 + 4].str,
+                    endLocation: tableData[idx * 10 + 5].str,
+                    distance: +tableData[idx * 10 + 6].str,
+                    money: +tableData[idx * 10 + 7].str,
+                }
+            })
+            tableList = [...tableList, ...pageList]
+        }
 
         const totalNum = tableList.length
         const totalMoney = tableList.reduce((acc, curr) => {
