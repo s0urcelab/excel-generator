@@ -1,3 +1,5 @@
+English | [简体中文](./docs/README.zh-CN.md)
+
 # excel-generator
 🖨️ a tool to generate EXCEL
 
