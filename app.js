@@ -37,6 +37,7 @@ const REQ_OPTS = {
     },
     data: {
         attendStartDate: moment()
+            .subtract(1, 'month')
             .startOf('month')
             .hour(0)
             .minute(0)
@@ -51,7 +52,7 @@ const REQ_OPTS = {
             .millisecond(0)
             .unix(),
         page: 1,
-        pageSize: 30,
+        pageSize: 60,
         unum: '201909212',
     },
 }
@@ -127,7 +128,7 @@ const workbook = new Excel.Workbook();
         const response = await axios(REQ_OPTS)
         const { data: { data: { records } } } = response
         const dList = tableList.map(item => {
-            const {endCheckTime} = records
+            const { endCheckTime } = records
                 .find(v => moment.unix(v.attendDate).format(DATE_FORMAT) === item.date)
             return {
                 ...item,
