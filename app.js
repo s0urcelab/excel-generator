@@ -4,14 +4,6 @@
  *  @Declare : generate EXCEL
  *
  */
-const CONFIG = {
-    name: '小明',
-    OAToken: 'ZaaaaaX',
-    pdfPath: './assets/滴滴出行行程报销单.pdf',
-    tplPath: ['./assets/c.xlsx', './assets/d.xlsx'],
-    outputPath: ['./dist/报销申请单.xlsx', './dist/市内交通费用报销明细.xlsx'],
-}
-
 const moment = require('dayjs')
 const pdfjs = require('pdfjs-dist/es5/build/pdf')
 const Excel = require('exceljs')
@@ -19,8 +11,19 @@ const rmb = require('rmb-x')
 const axios = require('axios')
 const NP = require('number-precision')
 
+const OA_TOKEN = process.env.OA_TOKEN;
+const USER_NAME = process.env.USER_NAME;
+
+const CONFIG = {
+    pdfPath: './pdf/滴滴出行行程报销单.pdf',
+    tplPath: ['./template/c.xlsx', './template/d.xlsx'],
+    outputPath: ['./output/报销申请单.xlsx', './output/市内交通费用报销明细.xlsx'],
+}
+
 const DATE_FORMAT = 'YYYY/M/D'
 const STAT_REG = /共(\d+)笔行程， 合计 ((\d|\.)+)元/
+const PDF_TABLE_COL_NUM = 11
+const PDF_TABLE_DATE_ROW_IDX = 3
 const START_ROW_IDX_C = 5
 const START_ROW_IDX_D = 4
 const TODAY = moment().format(DATE_FORMAT)
@@ -30,14 +33,14 @@ const REQ_OPTS = {
     url: 'https://dymhr.douyucdn.cn/kq/japi/attend/record/list',
     method: 'POST',
     headers: {
-        Cookie: `j_authToken=${CONFIG.OAToken}`,
+        Cookie: `j_authToken=${OA_TOKEN}`,
         Host: 'dymhr.douyucdn.cn',
         Origin: 'https://dymhr.douyucdn.cn',
         Referer: 'https://dymhr.douyucdn.cn/',
     },
     data: {
         attendStartDate: moment()
-            .subtract(1, 'month')
+        .subtract(1, 'month')
             .startOf('month')
             .hour(0)
             .minute(0)
@@ -46,22 +49,23 @@ const REQ_OPTS = {
             .unix(),
         attendEndDate: moment()
             .endOf('month')
-            .hour(0)
-            .minute(0)
-            .second(0)
-            .millisecond(0)
+            .hour(23)
+            .minute(59)
+            .second(59)
+            .millisecond(999)
             .unix(),
         page: 1,
-        pageSize: 60,
-        unum: '201909212',
+        pageSize: 99,
     },
 }
 
-const workbook = new Excel.Workbook();
-
 (async () => {
-    console.log('开始解析行程单...')
+    if (!OA_TOKEN || !USER_NAME) {
+        return console.error('未配置OA_TOKEN或USER_NAME')
+    }
     try {
+        console.log('开始解析行程单...')
+        const workbook = new Excel.Workbook();
         const loadingPdf = pdfjs.getDocument(CONFIG.pdfPath)
         const doc = await loadingPdf.promise
 
@@ -75,18 +79,20 @@ const workbook = new Excel.Workbook();
         for (let i = 1; i <= doc.numPages ; i++) {
             const nowPage = await doc.getPage(i)
             const { items } = await nowPage.getTextContent()
+            // 没别的办法，暂时用transform里的7007这个特征匹配
             const tableData = items.filter(v => String(v.transform.slice(0, 4)) === '7,0,0,7')
-            const groupCount = Math.ceil(tableData.length / 10)
-            const pageList = Array.from({length: groupCount}).map((item, idx) => {
-                const [date, time, week] = tableData[idx * 10 + 2].str.split(' ')
+            const groupCount = Math.ceil(tableData.length / PDF_TABLE_COL_NUM)
+            const pageList = Array.from({ length: groupCount }).map((item, idx) => {
+                const [date, time, week] = tableData[idx * PDF_TABLE_COL_NUM + PDF_TABLE_DATE_ROW_IDX].str.split(' ')
                 return {
-                    type: tableData[idx * 10 + 1].str,
+                    // 车型在当前版本的行程单里因为换行已经没意义了
+                    // type: tableData[idx * PDF_TABLE_COL_NUM + 1].str,
                     date: moment(`${THIS_YEAR}-${date}`).format(DATE_FORMAT),
                     time,
-                    startLocation: tableData[idx * 10 + 4].str,
-                    endLocation: tableData[idx * 10 + 5].str,
-                    distance: +tableData[idx * 10 + 6].str,
-                    money: +tableData[idx * 10 + 7].str,
+                    startLocation: tableData[idx * PDF_TABLE_COL_NUM + 5].str,
+                    endLocation: tableData[idx * PDF_TABLE_COL_NUM + 6].str,
+                    distance: +tableData[idx * PDF_TABLE_COL_NUM + 7].str,
+                    money: +tableData[idx * PDF_TABLE_COL_NUM + 8].str,
                 }
             })
             tableList = [...tableList, ...pageList]
@@ -122,17 +128,17 @@ const workbook = new Excel.Workbook();
 
         // output
         await workbook.xlsx.writeFile(CONFIG.outputPath[0])
-        console.log('output:', CONFIG.outputPath[0])
+        console.log('输出报销申请单：', CONFIG.outputPath[0])
 
         // 市内交通费用报销明细
         const response = await axios(REQ_OPTS)
         const { data: { data: { records } } } = response
         const dList = tableList.map(item => {
-            const { endCheckTime } = records
+            const { endCheckTime, endSupplementTime } = records
                 .find(v => moment.unix(v.attendDate).format(DATE_FORMAT) === item.date)
             return {
                 ...item,
-                endCheck: moment.unix(endCheckTime).format('HH:mm'),
+                endCheck: moment.unix(endSupplementTime || endCheckTime).format('HH:mm'),
             }
         })
 
@@ -145,18 +151,18 @@ const workbook = new Excel.Workbook();
         dList.forEach((item, idx) => {
             sheetD.getCell(`A${idx + START_ROW_IDX_D}`).value = item.date
             sheetD.getCell(`B${idx + START_ROW_IDX_D}`).value = item.endCheck
-            sheetD.getCell(`C${idx + START_ROW_IDX_D}`).value = CONFIG.name
+            sheetD.getCell(`C${idx + START_ROW_IDX_D}`).value = USER_NAME
             sheetD.getCell(`D${idx + START_ROW_IDX_D}`).value = item.startLocation
             sheetD.getCell(`E${idx + START_ROW_IDX_D}`).value = item.endLocation
             sheetD.getCell(`G${idx + START_ROW_IDX_D}`).value = item.money
             sheetD.getCell(`H${idx + START_ROW_IDX_D}`).value = item.money
-            sheetD.getCell(`J${idx + START_ROW_IDX_D}`).value = CONFIG.name
+            sheetD.getCell(`J${idx + START_ROW_IDX_D}`).value = USER_NAME
         })
 
         // output
         await workbook.xlsx.writeFile(CONFIG.outputPath[1])
-        console.log('output:', CONFIG.outputPath[1])
-    } catch (e) {
-        console.error('throw error:', e)
+        console.log('输出市内交通费用报销明细：', CONFIG.outputPath[1])
+    } catch (err) {
+        console.error('发生错误：', err)
     }
 })()
