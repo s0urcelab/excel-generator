@@ -4,20 +4,17 @@
 ## 快速开始
 **推荐使用nodejs版本 v11+**
 
-在`app.js`中填写姓名和OA系统token
+#### 在`app.js`中填写姓名和OA系统token
 ```javascript
-const CONFIG = {
-    name: '小明', // 填写你的姓名
-    OAToken: 'ZaaaaaX', // 粘贴你OA系统cookie里的`j_authToken`字段
-    pdfPath: './template/滴滴出行行程报销单.pdf', // 将滴滴行程单pdf放置在此路径下
-    tplPath: ['./template/c.xlsx', './template/d.xlsx'], // default template EXCEL
-    outputPath: ['./output/报销申请单.xlsx', './output/市内交通费用报销明细.xlsx'], // output path setting
-}
-...
+const OA_TOKEN = '粘贴你OA系统cookie里的`j_authToken`字段到这里';
+
+const USER_NAME = '这里填写你的姓名';
 ```
-执行下面命令，即可生成EXCEL
+#### 行程单PDF放进 `/pdf` 文件夹
+
+#### 执行下面命令，即可生成EXCEL
 ```javascript
 npm i
 npm run build
 ```
-**生成的EXCEL将会被放置在`dist`目录下**
+**生成的EXCEL将会被放置在`output`目录下**

@@ -11,8 +11,10 @@ const rmb = require('rmb-x')
 const axios = require('axios')
 const NP = require('number-precision')
 
-const OA_TOKEN = process.env.OA_TOKEN;
-const USER_NAME = process.env.USER_NAME;
+// OA token
+const OA_TOKEN = 'xxxxxxxxxxxxxxx';
+// 你的名字
+const USER_NAME = '小明';
 
 const CONFIG = {
     pdfPath: './pdf/滴滴出行行程报销单.pdf',

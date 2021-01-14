@@ -6,18 +6,16 @@ English | [简体中文](./docs/README.zh-CN.md)
 ## Usage
 recommended nodejs version 11+
 
-edit `app.js`
+#### edit `app.js`
 ```javascript
-const CONFIG = {
-    name: '小明', // replace your real name
-    OAToken: 'ZaaaaaX', // paste your OA j_authToken here
-    pdfPath: './template/滴滴出行行程报销单.pdf', // put your pdf here
-    tplPath: ['./template/c.xlsx', './template/d.xlsx'], // default template EXCEL
-    outputPath: ['./output/报销申请单.xlsx', './output/市内交通费用报销明细.xlsx'], // output path setting
-}
-...
+// OA token
+const OA_TOKEN = 'xxxxxxxxxxxxxxx';
+// your name
+const USER_NAME = '小明';
 ```
-build EXCEL
+#### put your PDF into `/pdf` folder
+
+#### build EXCEL
 ```javascript
 npm i
 npm run build
