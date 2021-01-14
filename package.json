@@ -6,7 +6,7 @@
   "author": "s0urce",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "dayjs": "^1.8.30",
     "exceljs": "^4.1.0",
     "number-precision": "^1.4.0",
