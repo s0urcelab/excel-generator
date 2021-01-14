@@ -59,7 +59,7 @@ const REQ_OPTS = {
     },
 }
 
-(async () => {
+;(async () => {
     if (!OA_TOKEN || !USER_NAME) {
         return console.error('未配置OA_TOKEN或USER_NAME')
     }
