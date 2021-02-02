@@ -24,6 +24,7 @@ const CONFIG = {
 
 const DATE_FORMAT = 'YYYY/M/D'
 const STAT_REG = /共(\d+)笔行程， 合计 ((\d|\.)+)元/
+const ST_END_REG = /行程起止日期:(\d{4})-(\d{2})-\d{2} 至 (\d{4})-(\d{2})-\d{2}/
 const PDF_TABLE_COL_NUM = 11
 const PDF_TABLE_DATE_ROW_IDX = 3
 const START_ROW_IDX_C = 5
@@ -40,25 +41,6 @@ const REQ_OPTS = {
         Origin: 'https://dymhr.douyucdn.cn',
         Referer: 'https://dymhr.douyucdn.cn/',
     },
-    data: {
-        attendStartDate: moment()
-        .subtract(1, 'month')
-            .startOf('month')
-            .hour(0)
-            .minute(0)
-            .second(0)
-            .millisecond(0)
-            .unix(),
-        attendEndDate: moment()
-            .endOf('month')
-            .hour(23)
-            .minute(59)
-            .second(59)
-            .millisecond(999)
-            .unix(),
-        page: 1,
-        pageSize: 99,
-    },
 }
 
 ;(async () => {
@@ -73,9 +55,17 @@ const REQ_OPTS = {
 
         const firstPage = await doc.getPage(1)
         const { items } = await firstPage.getTextContent()
-        const [_, statNum, statMoney] = items
+        const [, statNum, statMoney] = items
             .find(v => !!~v.str.indexOf('笔行程， 合计')).str
             .match(STAT_REG)
+        const [, startYear, startMonth, endYear, endMonth] = items
+            .find(v => !!~v.str.indexOf('行程起止日期')).str
+            .match(ST_END_REG)
+
+        const isDecember = date => {
+            const [, month] = date.match(/(\d{2})-\d{2}/)
+            return month === '12'
+        }
 
         let tableList = []
         for (let i = 1; i <= doc.numPages ; i++) {
@@ -86,10 +76,13 @@ const REQ_OPTS = {
             const groupCount = Math.ceil(tableData.length / PDF_TABLE_COL_NUM)
             const pageList = Array.from({ length: groupCount }).map((item, idx) => {
                 const [date, time, week] = tableData[idx * PDF_TABLE_COL_NUM + PDF_TABLE_DATE_ROW_IDX].str.split(' ')
+                const year = (startYear !== endYear) && isDecember(date)
+                    ? +THIS_YEAR - 1
+                    : THIS_YEAR
                 return {
                     // 车型在当前版本的行程单里因为换行已经没意义了
                     // type: tableData[idx * PDF_TABLE_COL_NUM + 1].str,
-                    date: moment(`${THIS_YEAR}-${date}`).format(DATE_FORMAT),
+                    date: moment(`${year}-${date}`).format(DATE_FORMAT),
                     time,
                     startLocation: tableData[idx * PDF_TABLE_COL_NUM + 5].str,
                     endLocation: tableData[idx * PDF_TABLE_COL_NUM + 6].str,
@@ -133,7 +126,27 @@ const REQ_OPTS = {
         console.log('输出报销申请单：', CONFIG.outputPath[0])
 
         // 市内交通费用报销明细
-        const response = await axios(REQ_OPTS)
+        const response = await axios({
+            ...REQ_OPTS,
+            data: {
+                attendStartDate: moment(`${startYear}-${startMonth}-01`)
+                    .startOf('month')
+                    .hour(0)
+                    .minute(0)
+                    .second(0)
+                    .millisecond(0)
+                    .unix(),
+                attendEndDate: moment(`${endYear}-${endMonth}-01`)
+                    .endOf('month')
+                    .hour(23)
+                    .minute(59)
+                    .second(59)
+                    .millisecond(999)
+                    .unix(),
+                page: 1,
+                pageSize: 99,
+            },
+        })
         const { data: { data: { records } } } = response
         const dList = tableList.map(item => {
             const { endCheckTime, endSupplementTime } = records
